@@ -1,28 +1,24 @@
 #
 # Dockerfile for WordPress
 #
-FROM ubuntu:16.04
-MAINTAINER Azure App Service Container Images <appsvc-images@microsoft.com>
+FROM debian:jessie
+MAINTAINER Valk
 
 
 # ========
 # ENV vars
 # ========
 
-# apache httpd
-ENV HTTPD_VERSION "2.4.25"
-ENV HTTPD_DOWNLOAD_URL "https://www.apache.org/dist/httpd/httpd-$HTTPD_VERSION.tar.gz"
-ENV HTTPD_SHA1 "377c62dc6b25c9378221111dec87c28f8fe6ac69"
-ENV HTTPD_SOURCE "/usr/src/httpd"
-ENV HTTPD_HOME "/usr/local/httpd"
-ENV HTTPD_CONF_DIR "$HTTPD_HOME/conf"
-ENV HTTPD_CONF_FILE "$HTTPD_CONF_DIR/httpd.conf"
-ENV HTTPD_LOG_DIR "/home/LogFiles/httpd"
-ENV PATH "$HTTPD_HOME/bin":$PATH
-
-# mariadb
-ENV MARIADB_DATA_DIR "/home/data/mysql"
-ENV MARIADB_LOG_DIR "/home/LogFiles/mysql"
+# nginx
+ENV NGINX_VERSION "1.12.0"
+ENV NGINX_DOWNLOAD_URL "http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz"
+ENV NGINX_DOWNLOAD_URL_ASC "http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc"
+ENV NGINX_SOURCE "/usr/src/nginx"
+ENV NGINX_HOME "/usr/local/nginx"
+ENV NGINX_CONF_DIR "$NGINX_HOME/conf"
+ENV NGINX_CONF_FILE "$NGINX_CONF_DIR/nginx.conf"
+ENV NGINX_LOG_DIR "/home/LogFiles/nginx"
+ENV PATH "$NGINX_HOME/bin":$PATH
 
 # php
 ENV PHP_VERSION "7.1.2"
@@ -33,21 +29,6 @@ ENV PHP_HOME "/usr/local/php"
 ENV PHP_CONF_DIR "$PHP_HOME/etc"
 ENV PHP_CONF_DIR_SCAN "$PHP_CONF_DIR/conf.d"
 ENV PATH "$PHP_HOME/bin":$PATH
-
-# redis
-ENV REDIS_VERSION "3.2.8"
-ENV REDIS_DOWNLOAD_URL "http://download.redis.io/releases/redis-$REDIS_VERSION.tar.gz"
-ENV REDIS_SHA1 "6780d1abb66f33a97aad0edbe020403d0a15b67f"
-ENV REDIS_SOURCE "/usr/src/redis"
-ENV REDIS_HOME "/usr/local/redis"
-ENV PATH "$REDIS_HOME/bin":$PATH
-
-# phpMyAdmin
-ENV PHPMYADMIN_VERSION "4.6.6"
-ENV PHPMYADMIN_DOWNLOAD_URL "https://files.phpmyadmin.net/phpMyAdmin/$PHPMYADMIN_VERSION/phpMyAdmin-$PHPMYADMIN_VERSION-all-languages.tar.gz"
-ENV PHPMYADMIN_SHA256 "54086600558613b31c4daddf4ae58fbc1c252a2b8e3e6fae12f851f78677d72e"
-ENV PHPMYADMIN_SOURCE "/usr/src/phpmyadmin"
-ENV PHPMYADMIN_HOME "/home/phpmyadmin"
 
 # wordpress
 ENV WORDPRESS_VERSION "4.7.3"
@@ -88,54 +69,137 @@ RUN set -ex \
 	&& rm -r /var/lib/apt/lists/* \
 
 	# ---------------
-	# 2. apache httpd
+	# 2. nginx
 	# ---------------
-	&& mkdir -p $HTTPD_SOURCE \
-	&& mkdir -p $HTTPD_HOME \
+	&& mkdir -p $NGINX_SOURCE \
+	&& mkdir -p $NGINX_HOME \
 	## runtime and buildtime deps
-	&& httpdBuildtimeDeps=" \
-		libpcre++-dev \
+	&& nginxBuildtimeDeps=" \
+		ca-certificates \
+		curl \
+		libc-dev-bin \
+		libc6-dev \
+		libexpat1-dev \
+		libfontconfig1-dev \
+		libfreetype6-dev \
+		libgd-dev \
+		libgd2-dev \
+		libgeoip-dev \
+		libice-dev \
+		libjbig-dev \
+		libjpeg8-dev \
+		liblzma-dev \
+		libpcre3-dev \
+		libperl-dev \
+		libpng12-dev \
+		libpthread-stubs0-dev \
+		libsm-dev \
 		libssl-dev \
+		libtiff5-dev \
+		libvpx-dev \
+		libx11-dev \
+		libxau-dev \
+		libxcb1-dev \
+		libxdmcp-dev \
+		libxml2-dev \
+		libxpm-dev \
+		libxslt1-dev \
+		libxt-dev \
+		linux-libc-dev \
+		manpages-dev \
+		x11proto-core-dev \
+		x11proto-input-dev \
+		x11proto-kb-dev \
+		xtrans-dev \
+		zlib1g-dev \
+		libpcre++-dev \
 	" \
-	&& httpdRuntimeDeps="\
-		libapr1 \
-		libaprutil1 \
-		libaprutil1-ldap \
-		libapr1-dev \
-		libaprutil1-dev \
+	&& nginxRuntimeDeps="\
+		fontconfig-config \
+		fonts-dejavu-core \
+		geoip-database \
+		init-system-helpers \
+		libarchive-extract-perl \
+		libexpat1 \
+		libfontconfig1 \
+		libfreetype6 \
+		libgcrypt11 \
+		libgd3 \
+		libgdbm3 \
+		libgeoip1 \
+		libgpg-error0 \
+		libjbig0 \
+		libjpeg8 \
+		liblog-message-perl \
+		liblog-message-simple-perl \
+		libmodule-pluggable-perl \
+		libpng12-0 \
+		libpod-latex-perl \
+		libssl1.0.0 \
+		libterm-ui-perl \
+		libtext-soundex-perl \
+		libtiff5 \
+		libvpx1 \
+		libx11-6 \
+		libx11-data \
+		libxau6 \
+		libxcb1 \
+		libxdmcp6 \
+		libxml2 \
+		libxpm4 \
+		libxslt1.1 \
+		perl \
+		perl-modules \
+		rename \
+		sgml-base \
+		ucf \
+		xml-core \
 	" \
 	&& apt-get update \
-	&& apt-get install -y -V --no-install-recommends $httpdBuildtimeDeps $httpdRuntimeDeps \		
+	&& apt-get install -y -V --no-install-recommends $nginxBuildtimeDeps $nginxRuntimeDeps \		
 	&& rm -r /var/lib/apt/lists/* \
 	## download, validate, extract
 	&& cd $DOCKER_BUILD_HOME \
-	&& wget -O httpd.tar.gz "$HTTPD_DOWNLOAD_URL" --no-check-certificate \
-	&& echo "$HTTPD_SHA1 *httpd.tar.gz" | sha1sum -c - \
-	&& tar -xf httpd.tar.gz -C $HTTPD_SOURCE --strip-components=1 \
+	&& curl -SL "$NGINX_DOWNLOAD_URL" -o nginx.tar.gz \
+	&& curl -SL "$NGINX_DOWNLOAD_URL_ASC" -o nginx.tar.gz.asc \
+	&& gpg --verify nginx.tar.gz.asc \
+	&& tar -xf nginx.tar.gz -C $NGINX_SOURCE --strip-components=1 \
 	## configure, make, install
-	&& cd $HTTPD_SOURCE \
+	&& cd $NGINX_SOURCE \
 	&& ./configure \
-		--prefix=$HTTPD_HOME \
+		--user=www-data \
+		--group=www-data \
+		--prefix=$NGINX_HOME \
 		### using prefork for PHP. see http://php.net/manual/en/install.unix.apache2.php
-		--with-mpm=prefork \
-		--enable-mods-shared=reallyall \
-		--enable-ssl \
+		--conf-path=$NGINX_CONF_FILE \
+		--http-log-path=/proc/self/fd/1 \
+		--error-log-path=/proc/self/fd/2 \
+		--with-http_addition_module \
+		--with-http_auth_request_module \
+		--with-http_dav_module \
+		--with-http_geoip_module \
+		--with-http_gzip_static_module \
+		--with-http_image_filter_module \
+		--with-http_perl_module \
+		--with-http_realip_module \
+		--with-http_spdy_module \
+		--with-http_ssl_module \
+		--with-http_stub_status_module \
+		--with-http_sub_module \
+		--with-http_xslt_module \
+		--with-ipv6 \
+		--with-mail \
+		--with-mail_ssl_module \
+		--with-pcre-jit \
 	&& make -j "$(nproc)" \
 	&& make install \
 	&& make clean \
 	## clean up
-	&& rm -rf $HTTPD_SOURCE \
-		$HTTPD_HOME/man \
-		$HTTPD_HOME/manual \
-	&& rm $DOCKER_BUILD_HOME/httpd.tar.gz \
-	&& apt-get purge -y -V -o APT::AutoRemove::RecommendsImportant=false --auto-remove $httpdBuildtimeDeps \
-
-	# ----------
-	# 3. mariadb
-	# ----------
-	&& apt-get update \
-	&& DEBIAN_FRONTEND=noninteractive apt-get install mariadb-server -y -V --no-install-recommends \
-	&& rm -r /var/lib/apt/lists/* \
+	&& rm -rf $NGINX_SOURCE \
+		$NGINX_HOME/man \
+		$NGINX_HOME/manual \
+	&& rm $DOCKER_BUILD_HOME/nginx.tar.gz \
+	&& apt-get purge -y -V -o APT::AutoRemove::RecommendsImportant=false --auto-remove $nginxBuildtimeDeps \
 
 	# ------
 	# 4. php
@@ -186,11 +250,15 @@ RUN set -ex \
 		--disable-cgi \
 		### also, don't need pdo
 		--disable-pdo \
+		### use fpm (nginx)
+		--enable-fpm \
+		--with-fpm-user=www-data \
+		--with-fpm-group=www-data \
 		--enable-bcmath \
 		--enable-intl \
 		--enable-mbstring \
 		--enable-zip \
-		--with-apxs2=$HTTPD_HOME/bin/apxs \
+		--with-apxs2=$NGINX_HOME/bin/apxs \
 		--with-bz2 \
 		--with-config-file-path=$PHP_CONF_DIR \
 		--with-config-file-scan-dir=$PHP_CONF_DIR_SCAN \
@@ -204,6 +272,9 @@ RUN set -ex \
 		### see http://php.net/manual/en/mysqlinfo.api.choosing.php
 		--with-mysqli=mysqlnd \
 		--with-openssl \
+		### Extras
+		--enable-soap \
+		--with-zlib \
 	&& make -j "$(nproc)" \
 	&& make install \
 	&& make clean \
@@ -212,29 +283,6 @@ RUN set -ex \
 	&& rm -rf $PHP_HOME/php/man \
 	&& rm $DOCKER_BUILD_HOME/php.tar.gz \
 	&& apt-get purge -y -V -o APT::AutoRemove::RecommendsImportant=false --auto-remove $phpBuildtimeDeps \
-
-	# --------
-	# 5. redis
-	# --------
-	&& mkdir -p $REDIS_SOURCE \
-	&& mkdir -p $REDIS_HOME \
-	&& cd $DOCKER_BUILD_HOME \
-	&& wget -O redis.tar.gz "$REDIS_DOWNLOAD_URL" --no-check-certificate \
-	&& echo "$REDIS_SHA1 *redis.tar.gz" | sha1sum -c - \
-	&& tar -xf redis.tar.gz -C $REDIS_SOURCE --strip-components=1 \
-	&& cd $REDIS_SOURCE \
-	&& make -j "$(nproc)" \
-	&& make PREFIX=$REDIS_HOME install \
-	&& rm -rf $REDIS_SOURCE \
-	E&& rm $DOCKER_BUILD_HOME/redis.tar.gz \
-
-	# -------------
-	# 6. phpmyadmin
-	# -------------
-	&& mkdir -p $PHPMYADMIN_SOURCE \
-	&& cd $PHPMYADMIN_SOURCE \
-	&& wget -O phpmyadmin.tar.gz "$PHPMYADMIN_DOWNLOAD_URL" --no-check-certificate \
-	&& echo "$PHPMYADMIN_SHA256 *phpmyadmin.tar.gz" | sha256sum -c - \
 
 	# ------------	
 	# 7. wordpress
@@ -256,26 +304,20 @@ RUN set -ex \
 # =========
 
 # httpd confs
-COPY httpd.conf $HTTPD_CONF_DIR/
-COPY httpd-modules.conf $HTTPD_CONF_DIR/
-COPY httpd-php.conf $HTTPD_CONF_DIR/
-COPY httpd-wordpress.conf $HTTPD_CONF_DIR/
-COPY httpd-phpmyadmin.conf $HTTPD_CONF_DIR/
+COPY httpd.conf $NGINX_CONF_DIR/
+COPY httpd-modules.conf $NGINX_CONF_DIR/
+COPY httpd-php.conf $NGINX_CONF_DIR/
+COPY httpd-wordpress.conf $NGINX_CONF_DIR/
 # php confs
 COPY php.ini $PHP_CONF_DIR/
 COPY php-opcache.ini $PHP_CONF_DIR_SCAN/
 # wordpress conf
 COPY wp-config.php.microsoft $WORDPRESS_SOURCE/
-# phpmyadmin conf
-COPY phpmyadmin-config.inc.php $PHPMYADMIN_SOURCE/
 
 RUN set -ex \
 	## include php.conf
-	&& echo 'Include conf/httpd-php.conf' >> $HTTPD_CONF_FILE \
-  ## enable error log and disable using syslog
-  && sed -i 's/skip_log_error/#skip_log_error/g' /etc/mysql/mariadb.conf.d/50-mysqld_safe.cnf \
-	&& sed -i 's/syslog/#syslog/g' /etc/mysql/mariadb.conf.d/50-mysqld_safe.cnf \
-  ##
+	&& echo 'Include conf/httpd-php.conf' >> $NGINX_CONF_FILE \
+    ##
 	&& test ! -d /var/lib/php/sessions && mkdir -p /var/lib/php/sessions \
 	&& chown www-data:www-data /var/lib/php/sessions \
 	##
@@ -285,13 +327,8 @@ RUN set -ex \
 	##
 	&& ln -s $WORDPRESS_HOME /var/www/wordpress \
 	##
-	&& ln -s $PHPMYADMIN_HOME /var/www/phpmyadmin \
-	##
-	&& rm -rf /var/log/mysql \
-	&& ln -s $MARIADB_LOG_DIR /var/log/mysql \
-	##
 	&& rm -rf /var/log/httpd \
-	&& ln -s $HTTPD_LOG_DIR /var/log/httpd
+	&& ln -s $NGINX_LOG_DIR /var/log/httpd
 
 
 # =====
